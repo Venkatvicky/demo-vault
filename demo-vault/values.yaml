@@ -39,6 +39,12 @@ spec:
         envFrom:
         - secretRef:
             name: postgres-secret
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-data
+      volumes:
+      - name: postgres-data
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -53,7 +59,7 @@ spec:
     app: postgres
 
 ---
-# HashiCorp Vault Deployment and Service
+# HashiCorp Vault Deployment with PostgreSQL Storage Backend
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,6 +85,13 @@ spec:
         envFrom:
         - secretRef:
             name: vault-secret
+        volumeMounts:
+        - name: vault-config
+          mountPath: /vault/config
+      volumes:
+      - name: vault-config
+        configMap:
+          name: vault-config
 ---
 apiVersion: v1
 kind: Service
@@ -91,6 +104,24 @@ spec:
     targetPort: 8200
   selector:
     app: vault
+
+---
+# Vault ConfigMap to use PostgreSQL storage backend
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+data:
+  vault.hcl: |
+    storage "postgresql" {
+      connection_url = "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres.postgres.svc.cluster.local:5432/vault?sslmode=disable"
+    }
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    ui = true
 
 ---
 # ArgoCD Application for Vault and Postgres
@@ -135,3 +166,5 @@ metadata:
 type: Opaque
 data:
   VAULT_DEV_ROOT_TOKEN_ID: bXktdmF1bHQtcm9vdC10b2tlbg==  # 'my-vault-root-token' base64 encoded
+  POSTGRES_USER: bXktcG9zdGdyZXMtdXNlcg==
+  POSTGRES_PASSWORD: bXktcG9zdGdyZXMtcGFzc3dvcmQ=
