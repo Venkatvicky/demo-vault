@@ -1,0 +1,119 @@
+# Single Kubernetes YAML for PostgreSQL, Vault, and ArgoCD
+
+---
+# PostgreSQL Deployment and Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: postgres
+
+---
+# HashiCorp Vault Deployment and Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  labels:
+    app: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+      - name: vault
+        image: hashicorp/vault:1.15
+        ports:
+        - containerPort: 8200
+        envFrom:
+        - secretRef:
+            name: vault-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+spec:
+  ports:
+  - port: 8200
+    targetPort: 8200
+  selector:
+    app: vault
+
+---
+# ArgoCD Application for Vault and Postgres
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault-postgres-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/your-repo/kubernetes-configs'
+    targetRevision: HEAD
+    path: 'apps'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+---
+# Secrets for Postgres and Vault
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+data:
+  POSTGRES_USER: <base64-encoded-username>
+  POSTGRES_PASSWORD: <base64-encoded-password>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-secret
+type: Opaque
+data:
+  VAULT_DEV_ROOT_TOKEN_ID: <base64-encoded-token>
