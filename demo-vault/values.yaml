@@ -124,8 +124,8 @@ metadata:
   namespace: postgres
 type: Opaque
 data:
-  POSTGRES_USER: <base64-encoded-username>
-  POSTGRES_PASSWORD: <base64-encoded-password>
+  POSTGRES_USER: bXktcG9zdGdyZXMtdXNlcg==  # 'my-postgres-user' base64 encoded
+  POSTGRES_PASSWORD: bXktcG9zdGdyZXMtcGFzc3dvcmQ=  # 'my-postgres-password' base64 encoded
 ---
 apiVersion: v1
 kind: Secret
@@ -134,4 +134,4 @@ metadata:
   namespace: vault
 type: Opaque
 data:
-  VAULT_DEV_ROOT_TOKEN_ID: <base64-encoded-token>
+  VAULT_DEV_ROOT_TOKEN_ID: bXktdmF1bHQtcm9vdC10b2tlbg==  # 'my-vault-root-token' base64 encoded
