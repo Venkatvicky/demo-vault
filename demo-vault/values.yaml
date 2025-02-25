@@ -83,6 +83,8 @@ spec:
         ports:
         - containerPort: 8200
         env:
+        - name: VAULT_ADDR
+          value: "http://0.0.0.0:8200"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -99,6 +101,12 @@ spec:
             port: 8200
           initialDelaySeconds: 10
           periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health
+            port: 8200
+          initialDelaySeconds: 30
+          periodSeconds: 10
         volumeMounts:
         - name: vault-config
           mountPath: /vault/config
